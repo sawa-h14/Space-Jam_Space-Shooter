@@ -11,6 +11,8 @@ class MyApp(ShowBase):
         self.Universe.reparentTo(self.render)
         # set the environment scale so that it looks like infinity
         self.Universe.setScale(15000)
+        # disable all textures at this node and below
+        self.Universe.setTextureOff(1)
         # replace the texture
         tex = self.loader.loadTexture("./Assets/Universe/starfield-in-blue.jpg")
         self.Universe.setTexture(tex, 1)
