@@ -1,52 +1,69 @@
 import random
 from direct.showbase.ShowBase import ShowBase
+from panda3d.core import *
+from direct.showbase.Loader import *
+import DefensePaths as defensePaths
+import SpaceJamClasses
 
 class MyApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         self.SetupScene()
 
+        fullCycle = 60
+        for j in range(fullCycle):
+            SpaceJamClasses.Drone.droneCount += 1
+            nickName = "Drone" + str(SpaceJamClasses.Drone.droneCount)
+
+            self.DrawCloudDefense(self.Planet1, nickName)
+            self.DrawBaseballSeams(self.SpaceStation1, nickName, j, fullCycle, 2)
+            self.DrawCircleX(self.Hero, nickName, j, fullCycle, 2)
+            self.DrawCircleY(self.Hero, nickName, j, fullCycle, 2)
+            self.DrawCircleZ(self.Hero, nickName, j, fullCycle, 2)
+
     def SetupScene(self):
-        self.Universe = self.loader.loadModel("./Assets/Universe/Universe.x")
-        self.Universe.reparentTo(self.render)
-        # set the environment scale so that it looks like infinity
-        self.Universe.setScale(15000)
-        # disable all textures at this node and below
-        self.Universe.setTextureOff(1)
-        # replace the texture
-        tex = self.loader.loadTexture("./Assets/Universe/starfield-in-blue.jpg")
-        self.Universe.setTexture(tex, 1)
+        self.Universe = SpaceJamClasses.Universe(self.loader, "./Assets/Universe/Universe.x", self.render, 'Universe', "./Assets/Universe/starfield-in-blue.jpg", (0, 0, 0), 10000)
+        self.Planet1 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet1', "./Assets/Planets/2k_jupiter.jpg", (-6000, -3000, -800), 250)
+        self.Planet2 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet2', "./Assets/Planets/2k_mars.jpg", (0, 6000, 0), 300)
+        self.Planet3 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet3', "./Assets/Planets/2k_mercury.jpg", (500, -5000, 200), 500)
+        self.Planet4 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet4', "./Assets/Planets/2k_neptune.jpg", (300, 6000, 500), 150)
+        self.Planet5 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet5', "./Assets/Planets/2k_uranus.jpg", (700, -2000, 100), 500)
+        self.Planet6 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet6', "./Assets/Planets/2k_venus_atmosphere.jpg", (0, -900, -1400), 700)
+        self.SpaceStation1 = SpaceJamClasses.SpaceStation(self.loader, "./Assets/Space Station/spaceStation.x", self.render, 'Space Station', "./Assets/Space Station/SpaceStation1_Dif2.png", (1500, 1000, -100), 40)
+        self.Hero = SpaceJamClasses.Spaceship(self.loader, "./Assets/Spaceships/Dumbledore.x", self.render, 'Hero', "./Assets/Spaceships/spacejet_C.png", Vec3(800, 1800, -50), 50)
 
-        # add planets
-        self.planetsImg = ("2k_jupiter.jpg", "2k_mars.jpg", "2k_mercury.jpg", "2k_neptune.jpg", "2k_uranus.jpg", "2k_venus_atmosphere.jpg")
-        for index, imgFile in enumerate(self.planetsImg):
-            setattr(self, f"Planet{index}", self.loader.loadModel("./Assets/Planets/protoPlanet.x"))
-            planet = getattr(self, f"Planet{index}")
-            planet.reparentTo(self.render)
-            # create the scale and the position randomly
-            pos_x = index * 400 - 1000
-            pos_y = random.randrange(3000, 4000, 50)
-            pos_z = random.randrange(-1000, 1000, 50)
-            scale = random.randrange(50, 200)
-            planet.setPos(pos_x, pos_y, pos_z)
-            planet.setScale(scale)
-            # replace the texture
-            tex2 = self.loader.loadTexture(f"./Assets/Planets/{imgFile}")
-            planet.setTexture(tex2, 1)        
+    def DrawBaseballSeams(self, centralObject, droneName, step, numSeams, radius = 1):
+        unitVec = defensePaths.BaseballSeams(step, numSeams, B = 0.4)
+        unitVec.normalize()
+        position = unitVec * radius * 250 + centralObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, droneName, "./Assets/Drone Defender/octotoad1_auv.png", position, 5)
 
-        # add a spaceship
-        self.Ship = self.loader.loadModel("./Assets/Spaceships/Dumbledore.x")
-        self.Ship.reparentTo(self.render)
-        self.Ship.setPos(0, 1500, 0)
-        self.Ship.setHpr(-90, 90, 90)
-        self.Ship.setScale(50)
+    def DrawCloudDefense(self, centralObject, droneName):
+        unitVec = defensePaths.Cloud()
+        unitVec.normalize()
+        position = unitVec * 500 + centralObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, droneName, "./Assets/Drone Defender/octotoad1_auv.png", position, 10)
+    
+    def DrawCircleX(self, centralObject, droneName, step, numSeams, radius = 1):
+        unitVec = defensePaths.CircleX(step, numSeams)
+        unitVec.normalize()
+        position = unitVec * radius * 250 + centralObject.modelNode.getPos()
+        color = 255, 0, 0, 1 # red
+        SpaceJamClasses.Drone(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, droneName, "./Assets/Drone Defender/octotoad1_auv.png", position, 5, color)
 
-        # add a space station
-        self.Station = self.loader.loadModel("./Assets/Space Station/spaceStation.x")
-        self.Station.reparentTo(self.render)
-        self.Station.setScale(10)
-        self.Station.setPos(0, 1000, -200)
-        self.Station.setHpr(-90, 90, 45)
+    def DrawCircleY(self, centralObject, droneName, step, numSeams, radius = 1):
+        unitVec = defensePaths.CircleY(step, numSeams)
+        unitVec.normalize()
+        position = unitVec * radius * 250 + centralObject.modelNode.getPos()
+        color = 0, 255, 0, 1 # green
+        SpaceJamClasses.Drone(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, droneName, "./Assets/Drone Defender/octotoad1_auv.png", position, 5, color)
+
+    def DrawCircleZ(self, centralObject, droneName, step, numSeams, radius = 1):
+        unitVec = defensePaths.CircleZ(step, numSeams)
+        unitVec.normalize()
+        position = unitVec * radius * 250 + centralObject.modelNode.getPos()
+        color = 0, 0, 255, 1 # blue
+        SpaceJamClasses.Drone(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, droneName, "./Assets/Drone Defender/octotoad1_auv.png", position, 5, color)
 
 app = MyApp()
 app.run()
