@@ -86,7 +86,7 @@ class MyApp(ShowBase):
     def SetCamera(self):
         self.disableMouse()
         self.camera.reparentTo(self.Hero.modelNode)
-        self.camera.setFluidPos(0.25, 0.5, 0)
+        self.camera.setFluidPos(0, 0.5, 0)
 
 app = MyApp()
 app.run()

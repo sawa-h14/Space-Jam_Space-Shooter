@@ -14,3 +14,4 @@ In this demo, you can operate a spaceship in outer space.<br><br>
 | Nose Down (Turn down) | ↓ (Arrow Down) |
 | Tilt Left (Roll left) | Q  |
 | Tilt Right (Roll right) | E  |
+| Fire a Missile | F  |

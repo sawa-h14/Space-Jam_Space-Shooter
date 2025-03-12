@@ -55,3 +55,25 @@ class Drone(SphereCollideObject):
         self.modelNode.setTexture(tex, 1)
         if color != (0,0,0,0): 
             self.modelNode.setColor(color)
+
+class Missile(SphereCollideObject):
+    fireModels = {}
+    cNodes = {}
+    CollisionSolids = {}
+    Intervals = {}
+    missileCount = 0
+
+    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float = 1.0):
+        super(Missile, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 3.0)
+        self.modelNode.setScale(scaleVec)
+        self.modelNode.setPos(posVec)
+
+        Missile.missileCount += 1
+        Missile.fireModels[nodeName] = self.modelNode
+        Missile.cNodes[nodeName] = self.collisionNode
+
+        # We retrive the solid for our collisionNode.
+        Missile.CollisionSolids[nodeName] = self.collisionNode.node().getSolid(0)
+        # For debugging purposes, we show our missiles’ colliders and messages.
+        Missile.cNodes[nodeName].show() 
+        print("Fire torpedo #" + str(Missile.missileCount))
