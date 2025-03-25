@@ -8,10 +8,10 @@ In this demo, you can operate a spaceship in outer space.<br><br>
 | ------------- | ------------- |
 | Thrust (Move foward) | W  |
 | Drag (Move backwards) | S  |
-| Turn Left  | A  |
-| Turn Right  | D  |
+| Turn Left  | ← (Arrow Left)  |
+| Turn Right  | → (Arrow Right)  |
 | Nose Up (Turn up) | ↑ (Arrow Up) |
 | Nose Down (Turn down) | ↓ (Arrow Down) |
 | Tilt Left (Roll left) | Q  |
 | Tilt Right (Roll right) | E  |
-| Fire a Missile | F  |
+| Fire a Missile / Reload | F  |
