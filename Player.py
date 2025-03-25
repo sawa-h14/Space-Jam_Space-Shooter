@@ -26,6 +26,7 @@ class Spaceship(SphereCollideObject):
         self.missileDistance = 4000 # Until the missile exploses.
         self.missileBay = 1 # Only one missile in the missile bay to be launched.
         self.score = 0
+        self.font = self.loader.loadFont('./Assets/Fonts/DS-DIGIB.TTF')
 
         # Set the sound effects
         self.shootSound = base.loader.loadMusic('./Assets/Spaceships/shooting.mp3')
@@ -344,11 +345,11 @@ class Spaceship(SphereCollideObject):
         print("score: " + str(self.score))
 
     def SetScore(self):
-        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0,0,0,1), bg=(255,255,255,0.8))
+        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0.31,0.78,0.47,1), bg=(0,0,0,0.9), font=self.font)
     
     def UpdateScore(self, task):
         self.textObject.destroy()
-        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0,0,0,1), bg=(255,255,255,0.8))
+        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0.22,0.78,0.47,1), bg=(0,0,0,0.9), font=self.font)
         return task.cont
     
     def Sound(self):
