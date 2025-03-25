@@ -5,7 +5,7 @@ from direct.interval.LerpInterval import LerpFunc
 from direct.particles.ParticleEffect import ParticleEffect
 from direct.task import Task
 from direct.task.Task import TaskManager
-from panda3d.core import Loader, NodePath, TransformState, Mat4, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser
+from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser, TextNode
 from SpaceJamClasses import Missile
 from typing import Callable
 # Regex module import for string editing.
@@ -327,7 +327,7 @@ class Spaceship(SphereCollideObject):
         self.explodeSound.play()
 
     def ExplodeLight(self, t):
-        if t == 1.0 and self.explodeEffect:
+        if t == 1.0 and self.explodeEffect.isEnabled():
             self.explodeEffect.disable()
         elif t == 0:
             self.explodeEffect.start(self.explodeNode)
@@ -335,8 +335,8 @@ class Spaceship(SphereCollideObject):
     def SetParticles(self):
         base.enableParticles()
         self.explodeEffect = ParticleEffect()
-        self.explodeEffect.loadConfig('./Assets/Part-Efx/basic_xpld_efx.ptf')
-        self.explodeEffect.setScale(30)
+        self.explodeEffect.loadConfig('./Assets/Part-Efx/default_efx.ptf')
+        self.explodeEffect.setScale(40)
         self.explodeNode = self.render.attachNewNode('ExplosionEffects')
 
     def AddPoints(self, hitID):
@@ -345,20 +345,49 @@ class Spaceship(SphereCollideObject):
         print("score: " + str(self.score))
 
     def SetScore(self):
-        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0.31,0.78,0.47,1), bg=(0,0,0,0.9), font=self.font)
+        self.textObject = OnscreenText(
+            text='Score: ' +  str(self.score),
+            pos=(-0.1, -0.1),
+            scale=0.1, 
+            fg=(0.31,0.78,0.47,1), 
+            bg=(0,0,0,0.9), 
+            font=self.font,
+            align=TextNode.ARight,
+            parent=base.a2dTopRight
+        )
     
     def UpdateScore(self, task):
         self.textObject.destroy()
-        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0.22,0.78,0.47,1), bg=(0,0,0,0.9), font=self.font)
+        self.textObject = OnscreenText(
+            text='Score: ' +  str(self.score),
+            pos=(-0.1, -0.1), 
+            scale=0.1, 
+            fg=(0.31,0.78,0.47,1), 
+            bg=(0,0,0,0.9), 
+            font=self.font,
+            align=TextNode.ARight,
+            parent=base.a2dTopRight
+        )
         return task.cont
     
     def Sound(self):
         if self.shootSound.getVolume() > 0:
             self.shootSound.setVolume(0)
             self.loadSound.setVolume(0)
-            self.explodeSound.setVolume(0)     
+            self.explodeSound.setVolume(0)
+            self.SoundTextObject = OnscreenText(
+                text='Sound Off',
+                pos=(-0.1, 0.1), 
+                scale=0.1, 
+                fg=(0.22,0.78,0.47,1), 
+                bg=(0,0,0,0.9), 
+                font=self.font, 
+                align=TextNode.ARight,
+                parent=base.a2dBottomRight
+            )
         else:
             self.shootSound.setVolume(0.5)
             self.loadSound.setVolume(0.5)
             self.explodeSound.setVolume(0.5)
+            self.SoundTextObject.destroy()
         return Task.cont
