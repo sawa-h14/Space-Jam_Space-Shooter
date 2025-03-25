@@ -1,3 +1,4 @@
+from direct.gui.DirectGui import OnscreenText
 from direct.showbase.Loader import *
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
@@ -41,13 +42,13 @@ class MyApp(ShowBase):
 
     def SetupScene(self):
         self.Universe = SpaceJamClasses.Universe(self.loader, "./Assets/Universe/Universe.x", self.render, 'Universe', "./Assets/Universe/starfield-in-blue.jpg", (0, 0, 0), 10000)
-        self.Planet1 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet1', "./Assets/Planets/2k_jupiter.jpg", (-6000, -3000, -800), 250)
-        self.Planet2 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet2', "./Assets/Planets/2k_mars.jpg", (0, 6000, 0), 300)
+        self.Planet1 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet1', "./Assets/Planets/2k_jupiter.jpg", (-6000, -3000, -800), 250, points=50)
+        self.Planet2 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet2', "./Assets/Planets/2k_mars.jpg", (0, 6000, 0), 300, points=50)
         self.Planet3 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet3', "./Assets/Planets/2k_mercury.jpg", (500, -5000, 200), 500)
-        self.Planet4 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet4', "./Assets/Planets/2k_neptune.jpg", (600, 6000, 500), 150)
+        self.Planet4 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet4', "./Assets/Planets/2k_neptune.jpg", (600, 6000, 500), 150, points=200)
         self.Planet5 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet5', "./Assets/Planets/2k_uranus.jpg", (700, -2000, 100), 500)
         self.Planet6 = SpaceJamClasses.Planet(self.loader, "./Assets/Planets/protoPlanet.x", self.render, 'Planet6', "./Assets/Planets/2k_venus_atmosphere.jpg", (0, -900, -1400), 700)
-        self.SpaceStation1 = SpaceJamClasses.SpaceStation(self.loader, "./Assets/Space Station/spaceStation.x", self.render, 'Space Station', "./Assets/Space Station/SpaceStation1_Dif2.png", (1500, 1000, -100), 40)
+        self.SpaceStation1 = SpaceJamClasses.SpaceStation(self.loader, "./Assets/Space Station/spaceStation.x", self.render, 'Space Station', "./Assets/Space Station/SpaceStation1_Dif2.png", (1500, 1000, -100), 40, points=500)
         self.Hero = Player.Spaceship(self.loader, self.cTrav, self.taskMgr, self.accept, "./Assets/Spaceships/Dumbledore.x", self.render, 'Hero', "./Assets/Spaceships/spacejet_C.png", (800, 1800, -50), 50)
 
     def DrawBaseballSeams(self, centralObject, droneName, step, numSeams, radius = 1):

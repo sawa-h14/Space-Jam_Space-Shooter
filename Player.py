@@ -1,4 +1,5 @@
 from CollideObjectBase import SphereCollideObject
+from direct.gui.DirectGui import OnscreenText
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.interval.LerpInterval import LerpFunc
 from direct.particles.ParticleEffect import ParticleEffect
@@ -24,6 +25,7 @@ class Spaceship(SphereCollideObject):
         self.reloadTime = .25
         self.missileDistance = 4000 # Until the missile exploses.
         self.missileBay = 1 # Only one missile in the missile bay to be launched.
+        self.score = 0
 
         # Set the sound effects
         self.shootSound = base.loader.loadMusic('./Assets/Spaceships/shooting.mp3')
@@ -53,6 +55,9 @@ class Spaceship(SphereCollideObject):
         self.accept('into', self.HandleInto)
 
         self.SetParticles()
+        self.SetScore()
+        self.taskMgr.add(self.UpdateScore, "update-score")
+
     def SetKeyBindings(self):
         # All of our key bindings for our spaceship's movement.
         self.accept('w', self.Thrust, [1])
@@ -331,3 +336,16 @@ class Spaceship(SphereCollideObject):
         self.explodeEffect.loadConfig('./Assets/Part-Efx/basic_xpld_efx.ptf')
         self.explodeEffect.setScale(30)
         self.explodeNode = self.render.attachNewNode('ExplosionEffects')
+
+    def AddPoints(self, hitID):
+        found_node = self.render.find(hitID)
+        self.score += int(found_node.get_python_tag("points"))
+        print("score: " + str(self.score))
+
+    def SetScore(self):
+        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0,0,0,1), bg=(255,255,255,0.8))
+    
+    def UpdateScore(self, task):
+        self.textObject.destroy()
+        self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0,0,0,1), bg=(255,255,255,0.8))
+        return task.cont

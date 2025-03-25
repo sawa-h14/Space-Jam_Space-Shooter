@@ -16,7 +16,7 @@ class Universe(InverseSphereCollideObject):
         self.modelNode.setTexture(tex, 1)
 
 class Planet(SphereCollideObject):
-    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
+    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float, points: int = 100):
         super(Planet, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 1.2)
         self.modelNode.setPos(posVec)
         self.modelNode.setScale(scaleVec)
@@ -26,9 +26,10 @@ class Planet(SphereCollideObject):
 
         tex = loader.loadTexture(texPath)
         self.modelNode.setTexture(tex, 1)
+        self.modelNode.set_python_tag("points", points)
 
 class SpaceStation(CapsuleCollidableObject):
-    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
+    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float, points: int = 100):
         super(SpaceStation, self).__init__(loader, modelPath, parentNode, nodeName, 1, -2, 0, 1, -2, -10, 12)
         self.collisionNode.setHpr(0, 0, 45)
         self.modelNode.setPos(posVec)
@@ -39,11 +40,12 @@ class SpaceStation(CapsuleCollidableObject):
 
         tex = loader.loadTexture(texPath)
         self.modelNode.setTexture(tex, 1)
+        self.modelNode.set_python_tag("points", points)
 
 class Drone(SphereCollideObject):
     # How many drones have been spawned.
     droneCount = 0
-    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float, color: Vec4 = (0,0,0,0)):
+    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float, color: Vec4 = (0,0,0,0), points: int = 200):
         super(Drone, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 4.5)
         self.modelNode.setPos(posVec)
         self.modelNode.setScale(scaleVec)
@@ -55,6 +57,7 @@ class Drone(SphereCollideObject):
         self.modelNode.setTexture(tex, 1)
         if color != (0,0,0,0): 
             self.modelNode.setColor(color)
+        self.modelNode.set_python_tag("points", points)
 
 class Missile(SphereCollideObject):
     fireModels = {}
