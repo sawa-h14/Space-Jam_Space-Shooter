@@ -81,6 +81,7 @@ class Spaceship(SphereCollideObject):
         self.accept('e', self.RightTilt, [1])
         self.accept('e-up', self.RightTilt, [0])
         self.accept('f', self.Fire)
+        self.accept('m', self.Sound)
     
     def Thrust(self, keyDown):
         if keyDown:
@@ -349,3 +350,14 @@ class Spaceship(SphereCollideObject):
         self.textObject.destroy()
         self.textObject = OnscreenText(text='Score: ' +  str(self.score), pos=(0.95, 0.9), scale=0.1, fg=(0,0,0,1), bg=(255,255,255,0.8))
         return task.cont
+    
+    def Sound(self):
+        if self.shootSound.getVolume() > 0:
+            self.shootSound.setVolume(0)
+            self.loadSound.setVolume(0)
+            self.explodeSound.setVolume(0)     
+        else:
+            self.shootSound.setVolume(0.5)
+            self.loadSound.setVolume(0.5)
+            self.explodeSound.setVolume(0.5)
+        return Task.cont
