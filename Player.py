@@ -25,6 +25,14 @@ class Spaceship(SphereCollideObject):
         self.missileDistance = 4000 # Until the missile exploses.
         self.missileBay = 1 # Only one missile in the missile bay to be launched.
 
+        # Set the sound effects
+        self.shootSound = base.loader.loadMusic('./Assets/Spaceships/shooting.mp3')
+        self.shootSound.setVolume(0.5)
+        self.loadSound = base.loader.loadMusic('./Assets/Spaceships/loading.mp3')
+        self.loadSound.setVolume(0.5)
+        self.explodeSound = base.loader.loadMusic('./Assets/Spaceships/explosion.mp3')
+        self.explodeSound.setVolume(0.5)
+
         # disable all textures at this node and below
         self.modelNode.setTextureOff(1)
 
@@ -210,6 +218,7 @@ class Spaceship(SphereCollideObject):
             Missile.Intervals[tag] = currentMissile.modelNode.posInterval(2.0, travVec, startPos = posVec, fluid = 1)
 
             Missile.Intervals[tag].start()
+            self.shootSound.play()
 
             self.traverser.addCollider(currentMissile.collisionNode, self.handler)
         else:
@@ -227,6 +236,7 @@ class Spaceship(SphereCollideObject):
             if self.missileBay > 1:
                 self.missileBay = 1
             
+            self.loadSound.play()
             print("Reload complete.")
             return Task.done
         
