@@ -16,3 +16,6 @@ In this demo, you can operate a spaceship in outer space.<br><br>
 | Tilt Right (Roll right) | E  |
 | Fire a Missile / Reload | F  |
 | Sound On / Off | M  |
+
+## Credits
+<a href="http://www.freepik.com">Designed by macrovector / Freepik</a>

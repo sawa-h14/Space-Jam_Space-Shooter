@@ -1,23 +1,28 @@
 from CollideObjectBase import SphereCollideObject
-from direct.gui.DirectGui import OnscreenText
+from direct.gui.DirectGui import *
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.interval.LerpInterval import LerpFunc
+from direct.interval.IntervalGlobal import Sequence, Func, Wait
 from direct.particles.ParticleEffect import ParticleEffect
 from direct.task import Task
 from direct.task.Task import TaskManager
-from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser, TextNode
+from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser, TextNode, CollisionHandlerPusher
 from SpaceJamClasses import Missile
 from typing import Callable
 # Regex module import for string editing.
 import re
 
 class Spaceship(SphereCollideObject):
-    def __init__(self, loader: Loader, traverser: CollisionTraverser, taskMgr: TaskManager, accept: Callable[[str, Callable], None], modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
-        super(Spaceship, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0.25, 0, 0), 1.2)
+    def __init__(self, loader: Loader, traverser: CollisionTraverser, taskMgr: TaskManager, pusher: CollisionHandlerPusher,
+                accept: Callable[[str, Callable], None], modelPath: str, parentNode: NodePath, nodeName: str,
+                texPath: str, posVec: Vec3, scaleVec: float, screen: NodePath):
+        super(Spaceship, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0.25, 0, 0), 1.2, True)
         self.taskMgr = taskMgr
         self.loader = loader
+        self.pusher = pusher
         self.accept = accept
         self.render = parentNode
+        self.render2d = screen
         self.modelNode.setPos(posVec)
         self.modelNode.setHpr(0, 0, 180)
         self.modelNode.setScale(scaleVec)
@@ -26,30 +31,27 @@ class Spaceship(SphereCollideObject):
         self.missileDistance = 4000 # Until the missile exploses.
         self.missileBay = 1 # Only one missile in the missile bay to be launched.
         self.score = 0
-        self.font = self.loader.loadFont('./Assets/Fonts/DS-DIGIB.TTF')
+        self.font = self.loader.loadFont('./Assets/Fonts/DS-DIGIB.TTF')     
+        self.gameOver = False
 
-        # Set the sound effects
-        self.shootSound = base.loader.loadMusic('./Assets/Spaceships/shooting.mp3')
-        self.shootSound.setVolume(0.5)
-        self.loadSound = base.loader.loadMusic('./Assets/Spaceships/loading.mp3')
-        self.loadSound.setVolume(0.5)
-        self.explodeSound = base.loader.loadMusic('./Assets/Spaceships/explosion.mp3')
-        self.explodeSound.setVolume(0.5)
-
-        # disable all textures at this node and below
-        self.modelNode.setTextureOff(1)
-
-        tex = loader.loadTexture(texPath)
-        self.modelNode.setTexture(tex, 1)
-
+        self.SetSE()
         self.SetKeyBindings()
         self.taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
-        self.EnableHUB()
+        self.EnableHUD()
 
         self.cntExplode = 0
         self.explodeIntervals = {}
         self.traverser = traverser
         self.handler = CollisionHandlerEvent()
+
+        # Specifies what to do when a collision event is detected
+        self.traverser.addCollider(self.collisionPushNode, self.pusher)
+        self.pusher.addCollider(self.collisionPushNode, self.modelNode)
+        self.traverser.addCollider(self.collisionNode, self.handler)
+
+        # Display the collisions for debugging purposes
+        # self.traverser.showCollisions(self.render)
+        # self.collisionNode.show()
 
         # detect when collisions happen
         self.handler.addInPattern('into')
@@ -58,6 +60,25 @@ class Spaceship(SphereCollideObject):
         self.SetParticles()
         self.SetScore()
         self.taskMgr.add(self.UpdateScore, "update-score")
+        self.SetDamageScreen()
+
+    def SetDamageScreen(self):      
+        # Create a fullscreen white overlay
+        self.flash_overlay = OnscreenImage(image="./Assets/Spaceships/white.png", parent=self.render2d)
+        self.flash_overlay.setTransparency(TransparencyAttrib.MAlpha)
+        self.flash_overlay.setScale(2)  # Cover entire screen
+        self.flash_overlay.setColor(1, 1, 1, 0)  # Start fully transparent
+
+    def SetSE(self):
+        # Set the sound effects
+        self.shootSound = base.loader.loadMusic('./Assets/Spaceships/shooting.mp3')
+        self.shootSound.setVolume(0.1)
+        self.loadSound = base.loader.loadMusic('./Assets/Spaceships/loading.mp3')
+        self.loadSound.setVolume(0.1)
+        self.explodeSound = base.loader.loadMusic('./Assets/Spaceships/explosion.mp3')
+        self.explodeSound.setVolume(0.1)
+        self.damageSound = base.loader.loadMusic('./Assets/Spaceships/damage.mp3')
+        self.damageSound.setVolume(0.1)
 
     def SetKeyBindings(self):
         # All of our key bindings for our spaceship's movement.
@@ -73,17 +94,28 @@ class Spaceship(SphereCollideObject):
         self.accept('arrow_up-up', self.UpTurn, [0])
         self.accept('arrow_down', self.DownTurn, [1])
         self.accept('arrow_down-up', self.DownTurn, [0])
-        # self.accept('arrow_left', self.Left, [1])
-        # self.accept('arrow_left-up', self.Left, [0])
-        # self.accept('arrow_right', self.Right, [1])
-        # self.accept('arrow_right-up', self.Right, [0])
         self.accept('q', self.LeftTilt, [1])
         self.accept('q-up', self.LeftTilt, [0])
         self.accept('e', self.RightTilt, [1])
         self.accept('e-up', self.RightTilt, [0])
         self.accept('f', self.Fire)
         self.accept('m', self.Sound)
-    
+
+    def DisableControls(self):
+        self.taskMgr.remove('forward-thrust')
+        self.taskMgr.remove('drag')
+        self.taskMgr.remove('left-turn')
+        self.taskMgr.remove('right-turn')
+        self.taskMgr.remove('up-turn')
+        self.taskMgr.remove('down-turn')
+        self.taskMgr.remove('left')
+        self.taskMgr.remove('right')
+        self.taskMgr.remove('left-tilt')
+        self.taskMgr.remove('right-tilt')
+        self.taskMgr.remove('update-score')
+        self.taskMgr.remove('checkMissiles')
+        base.ignoreAll()
+
     def Thrust(self, keyDown):
         if keyDown:
             self.taskMgr.add(self.ApplyThrust, 'forward-thrust')
@@ -91,7 +123,7 @@ class Spaceship(SphereCollideObject):
             self.taskMgr.remove('forward-thrust')
 
     def ApplyThrust(self, task):
-        rate = 10
+        rate = 20
         trajectory = self.render.getRelativeVector(self.modelNode, Vec3.forward())
         trajectory.normalize()
         self.modelNode.setFluidPos(self.modelNode.getPos() + trajectory * rate )
@@ -104,7 +136,7 @@ class Spaceship(SphereCollideObject):
             self.taskMgr.remove('drag')
 
     def ApplyDrag(self, task):
-        rate = 10
+        rate = 20
         trajectory = self.render.getRelativeVector(self.modelNode, Vec3.forward())
         trajectory.normalize()
         self.modelNode.setFluidPos(self.modelNode.getPos() - trajectory * rate )
@@ -231,7 +263,7 @@ class Spaceship(SphereCollideObject):
         else:
             # If we aren't reloading, we want to start reloading.
             if not self.taskMgr.hasTaskNamed('reload'):
-                print('Initializing reload...')
+                # print('Initializing reload...')
                 # Call the reload method on no delay.
                 self.taskMgr.doMethodLater(0, self.Reload, 'reload')
                 return Task.cont
@@ -244,11 +276,11 @@ class Spaceship(SphereCollideObject):
                 self.missileBay = 1
             
             self.loadSound.play()
-            print("Reload complete.")
+            # print("Reload complete.")
             return Task.done
         
         elif task.time <= self.reloadTime:
-            print("Reload proceeding...")
+            # print("Reload proceeding...")
             return Task.cont
 
     def CheckIntervals(self, task):
@@ -264,49 +296,59 @@ class Spaceship(SphereCollideObject):
                 del Missile.CollisionSolids[i]
 
                 # debug
-                print(i + ' has reached the end of its fire solution.')
+                # print(i + ' has reached the end of its fire solution.')
                 
                 # We break because when things are deleted from a dictionary, we have to refactor the dictionary so we can reuse it, This is because when we delete things, there's a gap at that point.
                 break
 
         return Task.cont
     
-    def EnableHUB(self):
+    def EnableHUD(self):
         self.Hud = OnscreenImage(image = "./Assets/Hud/Reticle3b.png", pos = Vec3(0,0,0), scale = 0.1)
         self.Hud.setTransparency(TransparencyAttrib.MAlpha)
 
     def HandleInto(self, entry):
         fromNode = entry.getFromNodePath().getName()
-        print("fromNode: " + fromNode)
+        # print("fromNode: " + fromNode)
         intoNode = entry.getIntoNodePath().getName()
-        print("intoNode: " + intoNode)
+        # print("intoNode: " + intoNode)
+        # print("full intoNode: " + str(base.render.find("**/" + intoNode)))
 
         intoPosition = Vec3(entry.getSurfacePoint(self.render))
 
         tempVar = fromNode.split('_')
-        print("tempVar: " + str(tempVar))
+        # print("tempVar: " + str(tempVar))
         shooter = tempVar[0] # missile-#
-        print("Shooter: " + str(shooter))
+        # print("Shooter: " + str(shooter))
         tempVar = intoNode.split('-')
-        print("TempVar1: " + str(tempVar))
+        # print("TempVar1: " + str(tempVar))
         tempVar = intoNode.split('_')
-        print("TempVar2: " + str(tempVar))
+        # print("TempVar2: " + str(tempVar))
         victim = tempVar[0] # ex. drone#
-        print("Victim: " + str(victim))
+        # print("Victim: " + str(victim))
 
         pattern = r'[0-9]'
 
-        strippedString = re.sub(pattern, '', victim)
-        allowedStrings = ["Drone", "Drone-BB", "Drone-CD", "Drone-CX", "Drone-CY", "Drone-CZ", "Planet", "Space Station"]
+        TargetStrippedString = re.sub(pattern, '', victim)
+        ShooterStrippedString = re.sub(pattern, '', shooter)
+        allowedStrings = ["Drone", "Drone-BB", "Drone-CD", "Drone-CX", "Drone-CY", "Drone-CZ", "Drone-A", "Drone-B", "Planet", "Space Station"]
 
-        if(strippedString in allowedStrings):
-            print(victim, ' hit at ', intoPosition)
+        if ShooterStrippedString == "Missile" and TargetStrippedString in allowedStrings:
+            # print(victim, ' hit at ', intoPosition)
             self.DestroyObject(victim, intoPosition)
             
             if shooter in Missile.Intervals:
                 Missile.Intervals[shooter].finish()
-        
-        print(shooter + ' is DONE.')
+        elif ShooterStrippedString == "Hero" and TargetStrippedString in allowedStrings:
+            # print(shooter, ' bumps ', victim)
+            self.GetDamage()
+            if hasattr(self, "SoundTextObject"):
+                self.SoundTextObject.destroy()
+            self.textObject.destroy()
+            self.DisableControls()
+            self.gameOver = True
+
+        # print(shooter + ' is DONE.')
 
     def DestroyObject(self, hitID, hitPosition):
         # Unity also has a find method, yet it is very inefficient if used anywhere but at the beginning of the program.
@@ -342,13 +384,13 @@ class Spaceship(SphereCollideObject):
     def AddPoints(self, hitID):
         found_node = self.render.find(hitID)
         self.score += int(found_node.get_python_tag("points"))
-        print("score: " + str(self.score))
+        # print("score: " + str(self.score))
 
     def SetScore(self):
         self.textObject = OnscreenText(
             text='Score: ' +  str(self.score),
-            pos=(-0.1, -0.1),
-            scale=0.1, 
+            pos=(-0.1, -0.2),
+            scale=0.15, 
             fg=(0.31,0.78,0.47,1), 
             bg=(0,0,0,0.9), 
             font=self.font,
@@ -360,8 +402,8 @@ class Spaceship(SphereCollideObject):
         self.textObject.destroy()
         self.textObject = OnscreenText(
             text='Score: ' +  str(self.score),
-            pos=(-0.1, -0.1), 
-            scale=0.1, 
+            pos=(-0.1, -0.2), 
+            scale=0.15, 
             fg=(0.31,0.78,0.47,1), 
             bg=(0,0,0,0.9), 
             font=self.font,
@@ -378,7 +420,7 @@ class Spaceship(SphereCollideObject):
             self.SoundTextObject = OnscreenText(
                 text='Sound Off',
                 pos=(-0.1, 0.1), 
-                scale=0.1, 
+                scale=0.15, 
                 fg=(0.22,0.78,0.47,1), 
                 bg=(0,0,0,0.9), 
                 font=self.font, 
@@ -386,8 +428,26 @@ class Spaceship(SphereCollideObject):
                 parent=base.a2dBottomRight
             )
         else:
-            self.shootSound.setVolume(0.5)
-            self.loadSound.setVolume(0.5)
-            self.explodeSound.setVolume(0.5)
+            self.shootSound.setVolume(0.1)
+            self.loadSound.setVolume(0.1)
+            self.explodeSound.setVolume(0.1)
             self.SoundTextObject.destroy()
         return Task.cont
+
+    def GetDamage(self):
+        self.DamageEffects()
+        if self.shootSound.getVolume() > 0:
+            self.damageSound.play()
+
+    def DamageEffects(self):
+        self.blink_seq = Sequence(
+            *(Func(self.flash_overlay.setColor, 1, 1, 1, 0.8), Wait(0.05),  # Show
+              Func(self.flash_overlay.setColor, 1, 1, 1, 0), Wait(0.05)) * 3  # Repeat 3 times
+        )
+
+        # Start blinking
+        self.blink_seq.start()
+        
+    def cleanup(self):
+        self.modelNode.removeNode()
+        Missile.cleanup()
