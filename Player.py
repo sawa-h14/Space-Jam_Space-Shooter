@@ -6,7 +6,7 @@ from direct.interval.IntervalGlobal import Sequence, Func, Wait
 from direct.particles.ParticleEffect import ParticleEffect
 from direct.task import Task
 from direct.task.Task import TaskManager
-from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser, TextNode, CollisionHandlerPusher
+from panda3d.core import Loader, NodePath, Vec3, TransparencyAttrib, CollisionHandlerEvent, CollisionTraverser, TextNode, CollisionHandlerPusher, ClockObject
 from SpaceJamClasses import Missile
 from typing import Callable
 # Regex module import for string editing.
@@ -33,6 +33,7 @@ class Spaceship(SphereCollideObject):
         self.score = 0
         self.font = self.loader.loadFont('./Assets/Fonts/DS-DIGIB.TTF')     
         self.gameOver = False
+        self.lastCollisionTime = globalClock.getFrameTime()
 
         self.SetSE()
         self.SetKeyBindings()
@@ -45,20 +46,23 @@ class Spaceship(SphereCollideObject):
         self.handler = CollisionHandlerEvent()
 
         # Specifies what to do when a collision event is detected
-        self.traverser.addCollider(self.collisionPushNode, self.pusher)
-        self.pusher.addCollider(self.collisionPushNode, self.modelNode)
-        self.traverser.addCollider(self.collisionNode, self.handler)
+        self.traverser.addCollider(self.collisionNode, self.pusher)
+        self.pusher.addCollider(self.collisionNode, self.modelNode)
 
         # Display the collisions for debugging purposes
         # self.traverser.showCollisions(self.render)
         # self.collisionNode.show()
 
         # detect when collisions happen
-        self.handler.addInPattern('into')
+        self.pusher.addInPattern('into')
         self.accept('into', self.HandleInto)
+
+        self.handler.addInPattern('intoM')
+        self.accept('intoM', self.HandleInto)
 
         self.SetParticles()
         self.SetScore()
+        self.SetLives()
         self.taskMgr.add(self.UpdateScore, "update-score")
         self.SetDamageScreen()
 
@@ -331,7 +335,15 @@ class Spaceship(SphereCollideObject):
 
         TargetStrippedString = re.sub(pattern, '', victim)
         ShooterStrippedString = re.sub(pattern, '', shooter)
-        allowedStrings = ["Drone", "Drone-BB", "Drone-CD", "Drone-CX", "Drone-CY", "Drone-CZ", "Drone-A", "Drone-B", "Planet", "Space Station"]
+
+        if "Drone" in TargetStrippedString:
+            TargetStrippedString = TargetStrippedString.split('-')[0]
+
+        allowedStrings = [
+            "Drone",
+            "Planet",
+            "Space Station"
+        ]
 
         if ShooterStrippedString == "Missile" and TargetStrippedString in allowedStrings:
             # print(victim, ' hit at ', intoPosition)
@@ -341,14 +353,31 @@ class Spaceship(SphereCollideObject):
                 Missile.Intervals[shooter].finish()
         elif ShooterStrippedString == "Hero" and TargetStrippedString in allowedStrings:
             # print(shooter, ' bumps ', victim)
-            self.GetDamage()
+            # If the spaceship has already collided with another object within two seconds,
+            # the spaceship will not be damaged.
+            self.checkDamage()
+
+        # print(shooter + ' is DONE.')
+
+    def checkDamage(self):
+        # If the spaceship has already collided with another object within two seconds,
+        # the spaceship will not be damaged.
+        timeSinceCollision = globalClock.getFrameTime() - self.lastCollisionTime
+        if timeSinceCollision > 1.0:
+            self.GetDamage(30)
+
+        if self.bar['value'] <= 0:
             if hasattr(self, "SoundTextObject"):
                 self.SoundTextObject.destroy()
             self.textObject.destroy()
+            self.lifeImageObject.destroy()
+            self.lifeTextObject.destroy()
+            self.lifeBarFrame.destroy()
+            self.bar.destroy()
             self.DisableControls()
             self.gameOver = True
-
-        # print(shooter + ' is DONE.')
+        else:
+            self.lastCollisionTime = globalClock.getFrameTime()
 
     def DestroyObject(self, hitID, hitPosition):
         # Unity also has a find method, yet it is very inefficient if used anywhere but at the beginning of the program.
@@ -397,7 +426,47 @@ class Spaceship(SphereCollideObject):
             align=TextNode.ARight,
             parent=base.a2dTopRight
         )
+
+    def SetLives(self):
+        self.lifeImageObject = OnscreenImage(
+            image='./Assets/Spaceships/25129-4-spaceship-file.png',
+            pos=(0.1, 0, -0.15), 
+            scale=0.05, 
+            parent=base.a2dTopLeft
+        )
+        self.lifeImageObject.setTransparency(TransparencyAttrib.MAlpha)
+        self.lifeTextObject = OnscreenText(
+            text='Life',
+            pos=(0.25, -0.18),
+            scale=0.1, 
+            fg=(0.31,0.78,0.47,1), 
+            bg=(0,0,0,0.5), 
+            font=self.font,
+            parent=base.a2dTopLeft
+        )        
+        self.lifeBarFrame = OnscreenImage(
+            image="./Assets/Spaceships/frame.png",
+            pos=(0.9, 0, -0.142),
+            scale=(0.52, 1, 0.06),  # Slightly bigger than the bar
+            parent=base.a2dTopLeft
+        )
+        self.lifeBarFrame.setTransparency(TransparencyAttrib.MAlpha)
+        self.bar = DirectWaitBar(
+            text="", value=100, range=100,
+            pos=(0.9, 0, -0.15), 
+            barColor=(0.31,0.78,0.47,1),
+            scale=0.5,
+            frameSize=(-1, 1, -0.08, 0.08),
+            parent=base.a2dTopLeft,
+        )
+        self.bar.setTransparency(TransparencyAttrib.MAlpha)
     
+    # Callback function to set text
+    def decBar(self, arg):
+        self.bar['value'] -= arg
+        if self.bar['value'] <= 30:
+            self.bar['barColor'] = (1, 0, 0, 1)
+
     def UpdateScore(self, task):
         self.textObject.destroy()
         self.textObject = OnscreenText(
@@ -434,15 +503,16 @@ class Spaceship(SphereCollideObject):
             self.SoundTextObject.destroy()
         return Task.cont
 
-    def GetDamage(self):
+    def GetDamage(self, damageVal: int):
         self.DamageEffects()
         if self.shootSound.getVolume() > 0:
             self.damageSound.play()
+        self.decBar(damageVal)
 
     def DamageEffects(self):
         self.blink_seq = Sequence(
             *(Func(self.flash_overlay.setColor, 1, 1, 1, 0.8), Wait(0.05),  # Show
-              Func(self.flash_overlay.setColor, 1, 1, 1, 0), Wait(0.05)) * 3  # Repeat 3 times
+              Func(self.flash_overlay.setColor, 1, 1, 1, 0), Wait(0.05)) * 5  # Repeat 5 times
         )
 
         # Start blinking
