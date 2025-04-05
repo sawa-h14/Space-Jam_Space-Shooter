@@ -2,7 +2,7 @@ from direct.gui.DirectGui import *
 from direct.showbase.Loader import *
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
-from panda3d.core import CollisionTraverser, TransparencyAttrib, CollisionHandlerPusher, WindowProperties
+from panda3d.core import CollisionTraverser, TransparencyAttrib, CollisionHandlerPusher, WindowProperties, Vec3
 import DefensePaths as defensePaths
 import SpaceJamClasses
 import sys
@@ -47,6 +47,7 @@ class MyApp(ShowBase):
                             relief = None,
                             text_font = self.font,
                             text_fg=(0.31,0.78,0.47,1))
+        
         self.title2 = DirectLabel(text = "Press 'S' to start",
                             scale = 0.2,
                             pos = (0, 0, 0.1),
@@ -112,6 +113,11 @@ class MyApp(ShowBase):
         self.Sentinail2 = SpaceJamClasses.Orbiter(self.loader, self.taskMgr, "./Assets/Drone Defender/DroneDefender.obj", self.render, "Drone-B", 20.0, "./Assets/Drone Defender/octotoad1_auv.png", self.Planet2, 900, "Cloud", self.Hero, color=(1, 0.2, 0.8, 1), velocity= 0.5, points=500)
         self.Sentinail3 = SpaceJamClasses.Orbiter(self.loader, self.taskMgr, "./Assets/Drone Defender/DroneDefender.obj", self.render, "Drone-C", 10.0, "./Assets/Drone Defender/octotoad1_auv.png", self.Planet4, 900, "MLB", self.Hero, color=(0.6, 1, 0.2, 1), velocity= 0.2, points=500)
         self.Sentinail4 = SpaceJamClasses.Orbiter(self.loader, self.taskMgr, "./Assets/Drone Defender/DroneDefender.obj", self.render, "Drone-D", 10.0, "./Assets/Drone Defender/octotoad1_auv.png", self.Planet2, 900, "Cloud", self.Hero, color=(0.4, 1, 1, 1), points=500)
+        pathway = [Vec3(0, 0, 0), Vec3(300, 6000, 500), Vec3(700, -2000, 100), Vec3(0, -900, -1400)]
+        self.Wanderer1 = SpaceJamClasses.Wanderer(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, "Drone-WA1", 10.0, "./Assets/Drone Defender/octotoad1_auv.png", self.Hero, pathway, color=(0.62, 0.12, 0.94, 1), points=500)
+        pathway = [Vec3(300, 6000, 500), Vec3(700, -2000, 100), Vec3(0, -900, -1400), Vec3(0, 0, 0)]
+        self.Wanderer2 = SpaceJamClasses.Wanderer(self.loader, "./Assets/Drone Defender/DroneDefender.obj", self.render, "Drone-WA2", 10.0, "./Assets/Drone Defender/octotoad1_auv.png", self.Hero, pathway, color=(1, 0.5, 0, 1), points=500)
+        self.ApproachingDrone = SpaceJamClasses.ApproachingDrone(self.loader, self.taskMgr, "./Assets/Drone Defender/DroneDefender.obj", self.render, "Drone-head", 10.0, "./Assets/Drone Defender/octotoad1_auv - Copy.png", self.Hero, posVec=(1000, 4000, -50), color=(0, 0, 0, 0), points=500)
 
     def DrawBaseballSeams(self, centralObject, droneName, step, numSeams, radius = 1):
         unitVec = defensePaths.BaseballSeams(step, numSeams, B = 0.4)
@@ -238,6 +244,7 @@ class MyApp(ShowBase):
         self.Sentinail2.cleanup()
         self.Sentinail3.cleanup()
         self.Sentinail4.cleanup()
+        self.ApproachingDrone.cleanup()
         self.Hero.cleanup()
         self.SpaceStation1.cleanup()
         self.Planet1.cleanup()
@@ -247,6 +254,8 @@ class MyApp(ShowBase):
         self.Planet5.cleanup()
         self.Planet6.cleanup()
         SpaceJamClasses.Drone.cleanup(self.fullCycle)
+        self.Wanderer1.cleanup()
+        self.Wanderer2.cleanup()
 
     def WindowResize(self, window):
         width = base.win.getXSize()  # Get new width
